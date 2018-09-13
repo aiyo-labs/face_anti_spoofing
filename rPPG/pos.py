@@ -347,7 +347,7 @@ def main(user_input=None):
         plt.show()
 
 
-    l = 20
+    l = 32
     #H = np.zeros((1,mean_rgb.shape[0]))
     H = np.zeros(mean_rgb.shape[0])
     for t in range(0, (mean_rgb.shape[0]-l)):
