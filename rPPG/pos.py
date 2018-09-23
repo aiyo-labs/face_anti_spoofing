@@ -1,11 +1,7 @@
-#!/usr/bin/env python
-# encoding: utf-8
-
 """
 Pulse extraction using POS algorithm (%(version)s)
 """
 
-#from __future__ import print_function
 
 import matplotlib
 #matplotlib.use("TkAgg")
@@ -34,31 +30,27 @@ from imutils import face_utils
 import imutils
 
 import argparse
+import os
 
 
 def main(user_input=None):
 
-    basedir = './'
+    
 
     # EXTRACT PULSE
-    pulsedir = basedir + 'pulse'
+    pulsedir ="/Volumes/MacMini-Backups/siw-db/live/pulse/"
     start = 0
-    end = 450 #min 387
+    end = 300
     motion = 0
     threshold = 0.1
     #skininit = True
     order = 128
-    window = 20 #even
     framerate = 30
 
     # FREQUENCY ANALYSIS
-    hrdir = basedir + 'hr'
     nsegments = 12
     nfft = 2048
 
-    # RESULTS
-    resultdir = basedir + 'results'
-  
     overwrite = True
     plot =  True
     gridcount =  False
@@ -83,21 +75,16 @@ def main(user_input=None):
     else:
         camera = cv2.VideoCapture(args["video"])
 
+    video_file_path = args["video"]
+    video_file_name = os.path.basename(video_file_path)
     
     start_index = start
     end_index = end
-   
 
     # number of final frames
     if end_index > 0:
         nb_frames = end_index - start_index
 
-    # the grayscale difference between two consecutive frames (for stable frame selection)
-    #if motion:
-    #    diff_motion = np.zeros((nb_frames-1, 1),  dtype='float64')
-
-    # skin color filter
-    #skin_filter = bob.ip.skincolorfilter.SkinColorFilter()
 
     # output data
     output_data = np.zeros(nb_frames, dtype='float64')
@@ -117,9 +104,6 @@ def main(user_input=None):
 
         if not grabbed:
             continue
-
-        #if from_webcam:
-
         
         h,w,_ = frame.shape
         if h>w:
@@ -139,7 +123,7 @@ def main(user_input=None):
         show_frame = frame.copy()
         ixc,iyc,a1x,a1y,a2x,a2y,a3x,a3y,a4x,a4y,a5lx,a5y,b1x,b1y,b2x,b2y,b3x,b3y,b4x,b4y,b5y,b5x,c1x,c1y,c2x,c2y,c3x,c3y,c4x,c4y,c5x,c5y,d1x,d1y,e1x,e1y=0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
         for rect in rects:
-            #print(d.rect)
+            
             print("Left: {} Top: {} Right: {} Bottom: {}".format(
                 rect.left(), rect.top(), rect.right(), rect.bottom()))
             
@@ -154,7 +138,8 @@ def main(user_input=None):
                 #saving particular face landmarks for the ROI box
                 if counter==21:
                     a1x=x
-                    a1y=y/ratio_forehead_height ####
+                    a1y = abs(rect.bottom()-((rect.bottom()- rect.top()) * 1.04))
+                    #a1y=y/ratio_forehead_height ####
                 if counter==22:
                     a2x=x
                     a2y=y
@@ -221,37 +206,8 @@ def main(user_input=None):
             bottom = rect.bottom()
             right = rect.right()
 
-            '''
-            # motion difference (if asked for)
-            if motion > 0 and (i < (nb_frames - 1)) and (counter > 0):
-                current = frame[top:bottom,left:right]
-                #current = crop_face(frame, bbox, bbox.size[1])
-                diff_motion[counter-1] = compute_gray_diff(face, current)
-            '''
-            
             #face = crop_face(frame, bbox, bbox.size[1])
             face = frame[top:bottom,left:right]
-
-            '''
-            if plot and verbosity_level >= 2:
-                from matplotlib import pyplot
-                pyplot.imshow(np.rollaxis(np.rollaxis(face, 2),2))
-                pyplot.show()
-            
-            # skin filter
-            if counter == 0 or skininit:
-                skin_filter.estimate_gaussian_parameters(face)
-                logger.debug("Skin color parameters:\nmean\n{0}\ncovariance\n{1}".format(skin_filter.mean, skin_filter.covariance))
-                skin_mask = skin_filter.get_skin_mask(face, threshold)
-            
-
-            if plot and verbosity_level >= 2:
-                from matplotlib import pyplot
-                skin_mask_image = np.copy(face)
-                skin_mask_image[:, skin_mask] = 255
-                pyplot.imshow(np.rollaxis(np.rollaxis(skin_mask_image, 2),2))
-                pyplot.show()
-            '''
 
             #compute mean
             forehead_roi = frame[listforehead[1]:listforehead[3],listforehead[0]:listforehead[2]]
@@ -275,28 +231,6 @@ def main(user_input=None):
             #chrom[frame_counter] = project_chrominance(r, g, b)
             print("Mean RGB -> R = {0}, G = {1}, B = {2} ".format(r,g,b))
 
-            
-            '''
-            # sometimes skin is not detected !
-            if np.count_nonzero(skin_mask) != 0:        
-
-                # compute the mean rgb values of the skin pixels
-                r,g,b = compute_mean_rgb(face, skin_mask)
-                logger.debug("Mean color -> R = {0}, G = {1}, B = {2}".format(r,g,b))
-
-                # project onto the chrominance colorspace
-                chrom[counter] = project_chrominance(r, g, b)
-                logger.debug("Chrominance -> X = {0}, Y = {1}".format(chrom[counter][0], chrom[counter][1]))
-
-            else:
-                logger.warn("No skin pixels detected in frame {0}, using previous value".format(i))
-                # very unlikely, but it could happened and messed up all experiments (averaging of scores ...)
-                if counter == 0:
-                    chrom[counter] = project_chrominance(128., 128., 128.)
-                else:
-                    chrom[counter] = chrom[counter-1]
-            '''
-
         
         cv2.rectangle(show_frame, (listforehead[0], listforehead[1]), (listforehead[2], listforehead[3]), (255,0,0), 2)
         cv2.rectangle(show_frame, (listleftface[0], listleftface[1]), (listleftface[2], listleftface[3]), (255,0,0), 2)
@@ -316,27 +250,6 @@ def main(user_input=None):
         i += 1
         #end loop
     
-    
-    '''
-    # select the most stable number of consecutive frames, if asked for
-    if motion > 0:
-        n_stable_frames_to_keep = int(motion * nb_frames)
-        logger.info("Number of stable frames kept for motion -> {0}".format(n_stable_frames_to_keep))
-        index = select_stable_frames(diff_motion, n_stable_frames_to_keep)
-        logger.info("Stable segment -> {0} - {1}".format(index, index + n_stable_frames_to_keep))
-        chrom = chrom[index:(index + n_stable_frames_to_keep),:]
-
-    if plot:
-        from matplotlib import pyplot
-        f, axarr = pyplot.subplots(2, sharex=True)
-        axarr[0].plot(range(chrom.shape[0]), chrom[:, 0], 'k')
-        axarr[0].set_title("X value in the chrominance subspace")
-        axarr[1].plot(range(chrom.shape[0]), chrom[:, 1], 'k')
-        axarr[1].set_title("Y value in the chrominance subspace")
-        pyplot.show()
-
-    '''
-
     camera.release()
     cv2.destroyAllWindows()
 
@@ -346,14 +259,16 @@ def main(user_input=None):
         plt.title("Mean RGB - Complete")
         plt.show()
 
+    #Calculating l
+    l = int(framerate * 1.6)
+    print("Framerate : ",l)
 
-    l = 32
-    #H = np.zeros((1,mean_rgb.shape[0]))
     H = np.zeros(mean_rgb.shape[0])
+
     for t in range(0, (mean_rgb.shape[0]-l)):
         #t = 0
         # Step 1: Spatial averaging
-        C = mean_rgb[t:t+l,:].T
+        C = mean_rgb[t:t+l-1,:].T
         #C = mean_rgb.T
         print("C shape", C.shape)
         print("t={0},t+l={1}".format(t,t+l))
@@ -368,18 +283,18 @@ def main(user_input=None):
         
         #Step 2 : Temporal normalization
         mean_color = np.mean(C, axis=1)
-        print("Mean color", mean_color)
+        #print("Mean color", mean_color)
         
         diag_mean_color = np.diag(mean_color)
-        print("Diagonal",diag_mean_color)
+        #print("Diagonal",diag_mean_color)
         
         diag_mean_color_inv = np.linalg.inv(diag_mean_color)
-        print("Inverse",diag_mean_color_inv)
+        #print("Inverse",diag_mean_color_inv)
         
         Cn = np.matmul(diag_mean_color_inv,C)
         #Cn = diag_mean_color_inv@C
-        print("Temporal normalization", Cn)
-        print("Cn shape", Cn.shape)
+        #print("Temporal normalization", Cn)
+        #print("Cn shape", Cn.shape)
 
         if plot:
             f = np.arange(0,Cn.shape[1])
@@ -415,7 +330,7 @@ def main(user_input=None):
             plt.show()
 
         #Step 5: Overlap-Adding
-        H[t:t+l] = H[t:t+l] +  (P-np.mean(P))/np.std(P)
+        H[t:t+l-1] = H[t:t+l-1] +  (P-np.mean(P))/np.std(P)
 
     print("Pulse",H)
     signal = H
@@ -438,18 +353,17 @@ def main(user_input=None):
         pyplot.title('Filtered green signal')
         pyplot.show()
 
-    import scipy.io as sio
-    sio.savemat('pulse.mat',{'pulse':signal})
+    
 
     from scipy.signal import welch
     signal = signal.flatten()
-    green_f, green_psd = welch(signal, framerate, 'flattop', nperseg=69, scaling='spectrum',nfft=2048)
+    green_f, green_psd = welch(signal, framerate, 'flattop', nperseg=segment_length) #, scaling='spectrum',nfft=2048)
     print("Green F, Shape",green_f,green_f.shape)
     print("Green PSD, Shape",green_psd,green_psd.shape)
 
-    green_psd = green_psd.flatten()
-    first = np.where(green_f > 0.7)[0]
-    last = np.where(green_f < 4)[0]
+    #green_psd = green_psd.flatten()
+    first = np.where(green_f > 0.9)[0]
+    last = np.where(green_f < 1.8)[0]
     first_index = first[0]
     last_index = last[-1]
     range_of_interest = range(first_index, last_index + 1, 1)
@@ -460,6 +374,11 @@ def main(user_input=None):
 
     hr = f_max*60.0
     print("Heart rate = {0}".format(hr))
+
+    import scipy.io as sio
+    mat_file_name = pulsedir + "pulse_" + video_file_name[:-4] + "_frame-0-15" + ".mat"
+    sio.savemat(mat_file_name,{'pulse':signal, 'heartrate':hr, 'nperseg':segment_length})
+
 
     if plot:
         from matplotlib import pyplot
